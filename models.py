@@ -36,3 +36,28 @@ class RotNetModel(nn.Module):
         z = self.classifier(z)
 
         return z
+
+
+class CNN(nn.Module):
+    def __init__(self,
+                 path_feature_learning: str,
+                 nclasses: int,
+                 activation=nn.ReLU) -> None:
+        super().__init__()
+
+        self.activation = activation()
+        self.feature_learner = torch.load(path_feature_learning,
+                                          map_location="cpu")
+
+        self.classifier = nn.Sequential(nn.LazyLinear(out_features=256),
+                                        self.activation, nn.Dropout(0.4),
+                                        nn.Linear(256, 256), self.activation,
+                                        nn.Dropout(0.4),
+                                        nn.Linear(256, nclasses))
+
+    def forward(self, x):
+        z = self.feature_learner(x)
+        z = torch.reshape(z, shape=(z.shape[0], -1))
+        z = self.classifier(z)
+
+        return z
