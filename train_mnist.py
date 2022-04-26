@@ -4,11 +4,13 @@ github:sanidhyamangal
 """
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns  # for cmatrix development
 import torch
 import torch.nn as nn  # for nn based ops
+from sklearn.metrics import confusion_matrix  # for building cmatrix
 from torch.optim import Adam
 from torchvision import transforms  # for transforming
-from torchvision.datasets import MNIST
+from torchvision.datasets import MNIST  # for loading dataset
 
 from models import CNN
 from utils import DEVICE
@@ -72,3 +74,19 @@ plt.ylabel("Loss")
 plt.savefig("mnist_loss.png")
 
 torch.save(model, "mnist.pt")
+
+# plot the confusion matrix
+prediction_labels = []
+gt = []
+
+for test_batch in test_dataloader:
+    pred = model(batch[0].to(DEVICE()))
+    labels = torch.argmax(torch.sigmoid(pred), dim=1)
+    prediction_labels.extend(labels.detach().cpu())
+    gt.extend(batch[1])
+
+c_matrix = confusion_matrix(
+    torch.stack(prediction_labels).numpy(),
+    torch.stack(gt).numpy())
+sns.heatmap(c_matrix, annot=True)
+plt.savefig("mnist_heatmap.png")
