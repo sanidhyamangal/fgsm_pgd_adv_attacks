@@ -16,13 +16,13 @@ def generated_rotated_image(image_batch, batch_size=64):
 
     for i in range(image_batch.shape[0]):
         new_image_batch.extend([
-            rotate(image_batch[i], 0).numpy(),
-            rotate(image_batch[i], 1 * 90).numpy(),
-            rotate(image_batch[i], 2 * 90).numpy(),
-            rotate(image_batch[i], 3 * 90).numpy()
+            rotate(image_batch[i], 0),
+            rotate(image_batch[i], 1 * 90),
+            rotate(image_batch[i], 2 * 90),
+            rotate(image_batch[i], 3 * 90)
         ])
 
-    new_image_batch = torch.FloatTensor(np.array(new_image_batch)[shuffle_idx])
-    angles = torch.IntTensor(x)[shuffle_idx]
+    new_image_batch = torch.stack(new_image_batch)[shuffle_idx]
+    angles = torch.LongTensor(x)[shuffle_idx]
 
     return new_image_batch, angles
