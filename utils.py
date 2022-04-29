@@ -71,3 +71,15 @@ def get_categories(filename):
         categories = [s.strip() for s in fp.readlines()]
 
     return categories
+
+
+def generate_fgsm_pertub(model, input_image, target_label, criterion):
+    model.zero_grad()
+    input_image.requires_grad = True
+    predictions = model(input_image)
+
+    loss = criterion(predictions, target_label)
+    loss.backward()
+    grad = input_image.grad.data
+
+    return torch.sign(grad)

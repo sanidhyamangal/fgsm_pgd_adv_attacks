@@ -6,8 +6,9 @@ import torch
 import torch.nn as nn
 from PIL import Image
 
-from utils import (create_image_transforms, generate_pgd_adv, get_categories,
-                   normalize_image, save_image)
+from utils import (create_image_transforms, generate_fgsm_pertub,
+                   generate_pgd_adv, get_categories, normalize_image,
+                   save_image)
 
 image = Image.open("YellowLabradorLooking_new.jpeg")
 model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
@@ -69,3 +70,21 @@ save_image(
     "PGD Targetd Adv Image", "pgd_targ_adv_img.png")
 save_image(pgd_pertub_targ.detach().numpy().transpose(1, 2, 0),
            "PGD Targetd Pertubed Image", "pgd_targ_per_img.png")
+
+# generate fgsm pertub
+fgsm_pertub_un = generate_fgsm_pertub(model, image_tensor.unsqueeze(0),
+                                      category_id[0], criterion)
+# get adv image
+adv_fgsm_un_image = image_tensor + 1e-2 * fgsm_pertub_un
+fgsm_un_probab = model(adv_fgsm_un_image)
+
+fgsm_un_prob, fgsm_un_cat_id = torch.topk(torch.sigmoid(fgsm_un_probab), 1)
+print(
+    f"FGSM: Probab Un {fgsm_un_prob}, Cat Id: {fgsm_un_cat_id} Category: {categories[fgsm_un_cat_id]}"
+)
+save_image(
+    normalize_image(adv_fgsm_un_image[0], mean,
+                    std).numpy().transpose(1, 2, 0),
+    "FGSM Untargetd Adv Image", "fgsm_un_adv_img.png")
+save_image(fgsm_pertub_un[0].detach().numpy().transpose(1, 2, 0),
+           "FGSM Untargetd Pertubed Image", "fgsm_un_per_img.png")
