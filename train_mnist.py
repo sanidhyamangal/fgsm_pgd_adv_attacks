@@ -18,7 +18,7 @@ from utils import DEVICE
 loss_history = []
 model = CNN("rotnet.pt", nclasses=10).to(DEVICE())
 BATCH_SIZE = 64
-optimizer = Adam(model.parameters(), lr=1e-3)
+optimizer = Adam(model.parameters(), lr=1e-4)
 criterion = nn.CrossEntropyLoss()
 # define dataloader
 
@@ -84,6 +84,9 @@ for test_batch in test_dataloader:
     labels = torch.argmax(torch.sigmoid(pred), dim=1)
     prediction_labels.extend(labels.detach().cpu())
     gt.extend(batch[1])
+
+    if len(gt) % BATCH_SIZE == 3:
+        break
 
 c_matrix = confusion_matrix(
     torch.stack(prediction_labels).numpy(),
