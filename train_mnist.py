@@ -39,6 +39,7 @@ test_dataloader = torch.utils.data.DataLoader(mnist_test,
                                               shuffle=True,
                                               drop_last=True)
 
+# training loop for the mnist data
 for epoch in range(5):
     for idx, batch in enumerate(train_dataloader, 0):
         model.zero_grad()
@@ -48,9 +49,11 @@ for epoch in range(5):
         optimizer.step()
         loss_history.append(loss.detach().cpu().numpy())
 
+        # print the training logs for the epochs
         if idx % 100 == 0:
             print(f"Epoch {epoch}, Iteration: {idx},Loss: {loss_history[-1]}")
 
+    # validation step after each epoch
     model.eval()
     with torch.no_grad():
         _accuracy = []
@@ -67,12 +70,14 @@ for epoch in range(5):
 
         print(f"Epoch {epoch}, Val Accu: {np.mean(_accuracy)}")
 
+# plot the training loss for the training part
 plt.plot(loss_history)
 plt.title("MNIST Loss")
 plt.xlabel("Iterations")
 plt.ylabel("Loss")
 plt.savefig("mnist_loss.png")
 
+# save the trained model
 torch.save(model, "mnist.pt")
 
 # plot the confusion matrix

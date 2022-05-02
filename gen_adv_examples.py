@@ -10,16 +10,20 @@ from utils import (create_image_transforms, generate_fgsm_pertub,
                    generate_pgd_adv, get_categories, normalize_image,
                    save_image)
 
+# load image and model
 image = Image.open("YellowLabradorLooking_new.jpeg")
 model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
 model.eval()
+# obtain categories for the labels
 categories = get_categories("imagenet_classes.txt")
+# define the mean and std for normalizing images
 mean = [0.485, 0.456, 0.406]
 std = [0.229, 0.224, 0.225]
+
 preprocess = create_image_transforms(mean, std)
 
 image_tensor = preprocess(image)
-criterion = nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss()  # loss criterion
 
 # generate first set of predictions
 logits = model(image_tensor.unsqueeze(0))
@@ -27,7 +31,7 @@ probability, category_id = torch.topk(torch.sigmoid(logits), 1)
 
 print(f"Probabilities: {probability}, category: {category_id}")
 
-# generate untrageted_samples
+# generate untrageted_samples using pgd approach
 pgd_un_adv_image, pgd_pertub = generate_pgd_adv(
     model=model,
     images=image_tensor.unsqueeze(0),
@@ -36,6 +40,8 @@ pgd_un_adv_image, pgd_pertub = generate_pgd_adv(
     eps=1e-2,
     alpha=1e-4,
     num_iter=50)
+
+# generate targeted samples for the fgsm approach
 pgd_targ_adv_image, pgd_pertub_targ = generate_pgd_adv(
     model,
     image_tensor.unsqueeze(0),
@@ -46,12 +52,15 @@ pgd_targ_adv_image, pgd_pertub_targ = generate_pgd_adv(
     num_iter=50,
     targeted=True)
 
+# predict the output for the images generated using pgd attack
 pgd_un_prob = model(pgd_un_adv_image)
 pgd_targ_prob = model(pgd_targ_adv_image)
 
+# generate class probability and category for the predictions
 pgd_un_probab, pgd_un_cat_id = torch.topk(torch.sigmoid(pgd_un_prob), 1)
 pgd_targ_probab, pgd_targ_cat_id = torch.topk(torch.sigmoid(pgd_targ_prob), 1)
 
+# print results and save images
 print(
     f"Probab Un {pgd_un_probab}, Cat Id: {pgd_un_cat_id} Category: {categories[pgd_un_cat_id]}"
 )
@@ -78,7 +87,9 @@ fgsm_pertub_un = generate_fgsm_pertub(model, image_tensor.unsqueeze(0),
 adv_fgsm_un_image = image_tensor + 1e-2 * fgsm_pertub_un
 fgsm_un_probab = model(adv_fgsm_un_image)
 
+# get the class probability and category id
 fgsm_un_prob, fgsm_un_cat_id = torch.topk(torch.sigmoid(fgsm_un_probab), 1)
+# print the results and save images
 print(
     f"FGSM: Probab Un {fgsm_un_prob}, Cat Id: {fgsm_un_cat_id} Category: {categories[fgsm_un_cat_id]}"
 )

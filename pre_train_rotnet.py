@@ -37,7 +37,7 @@ test_dataloader = torch.utils.data.DataLoader(mnist_test,
                                               batch_size=BATCH_SIZE,
                                               shuffle=True,
                                               drop_last=True)
-
+# perform training ops # for the rotnet
 for epoch in range(1):
     for idx, batch in (train_dataloader):
         model.zero_grad()
@@ -52,6 +52,7 @@ for epoch in range(1):
         if idx % 100 == 0:
             print(f"Epoch {epoch}, Iteration: {idx},Loss: {loss_history[-1]}")
 
+    # evaluation step
     model.eval()
     with torch.no_grad():
         _accuracy = []
@@ -70,6 +71,7 @@ for epoch in range(1):
 
         print(f"Epoch {epoch}, Val Accu: {np.mean(_accuracy)}")
 
+# plot the loss for the training ops
 plt.plot(loss_history)
 plt.title("Rotation Pretraining Loss")
 plt.xlabel("Iterations")

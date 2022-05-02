@@ -10,18 +10,12 @@ DEVICE = lambda: "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def save_image(image, title, filename: str):
+    """function to save images"""
     plt.imshow(image)
     plt.axis("off")
     plt.title(title)
     plt.savefig(filename)
     plt.clf()
-
-
-def random_init(x, eps):
-    x = x + (torch.rand(x.size(), dtype=x.dtype, device=x.device) -
-             0.5) * 2 * eps
-    x = torch.clamp(x, 0, 1)
-    return x
 
 
 def generate_pgd_adv(model,
@@ -32,32 +26,44 @@ def generate_pgd_adv(model,
                      alpha,
                      num_iter,
                      targeted: bool = False):
-    adv = images.clone().detach().requires_grad_(True)
-    for i in range(num_iter):
-        _adv = adv.clone().detach().requires_grad_(True)
+    """function to generate perturbations for adv attack using pdg method"""
+    adv_image = images.clone().detach().requires_grad_(
+        True)  # copy the adv image from the og image
+    for i in range(num_iter):  # iterate for specified num of iterations.
+        _adv = adv_image.clone().detach().requires_grad_(
+            True)  # create a temp copy of the adv image to compute grads
+
+        # compute gradient and loss
         output = model(_adv)
         model.zero_grad()
         loss = criterion(output, y)
         loss.backward()
-        grad = _adv.grad
-        grad = grad.sign()
+
+        # compute the sign of the grad
+        grad = torch.sign(_adv.grad)
+
+        # check if the attack is targetd or not
         if not targeted:
-            adv = adv + grad * alpha
+            adv_image = adv_image + grad * alpha
         else:
-            adv = adv - grad * alpha
+            adv_image = adv_image - grad * alpha
 
-        adv = torch.max(torch.min(adv, images + eps), images - eps)
-        adv = adv.clamp(0.0, 1.0)
+        # perform projected gradient op for the training part
+        adv_image = torch.max(torch.min(adv_image, images + eps), images - eps)
+        adv_image = adv_image.clamp(0.0, 1.0)
 
-    return adv.detach(), adv - images
+    # return ad
+    return adv_image.detach(), adv_image - images
 
 
 def normalize_image(image: torch.tensor, mean, std):
+    """function to normalize image before saving it"""
     return image.detach().mul(torch.FloatTensor(std).view(3, 1, 1)).add(
         torch.FloatTensor(mean).view(3, 1, 1)).detach()
 
 
 def create_image_transforms(mean, std):
+    """function to create transformation pipeline for the machine learning"""
     return transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
@@ -67,6 +73,7 @@ def create_image_transforms(mean, std):
 
 
 def get_categories(filename):
+    """function to get resnet labels"""
     with open(filename, "r") as fp:
         categories = [s.strip() for s in fp.readlines()]
 
@@ -74,12 +81,17 @@ def get_categories(filename):
 
 
 def generate_fgsm_pertub(model, input_image, target_label, criterion):
+    """function to generate perturbations using FGSM method"""
+    # make zero grad
     model.zero_grad()
+    # mark require grad to true for image
     input_image.requires_grad = True
+    # generate predictions, compute loss and gradients
     predictions = model(input_image)
 
     loss = criterion(predictions, target_label)
     loss.backward()
+    # obtain the grad and return it's sign
     grad = input_image.grad.data
 
     return torch.sign(grad)
