@@ -40,7 +40,7 @@ test_dataloader = torch.utils.data.DataLoader(mnist_test,
                                               drop_last=True)
 
 for epoch in range(5):
-    for idx, batch in (train_dataloader, 0):
+    for idx, batch in enumerate(train_dataloader, 0):
         model.zero_grad()
         pred = model(batch[0].to(DEVICE()))
         loss = criterion(pred, batch[1].to(DEVICE()))
@@ -63,7 +63,7 @@ for epoch in range(5):
                 DEVICE()).flatten()).sum().item()
             accuracy = correct / labels.shape[0]
 
-            _accuracy.append(accuracy.detach().cpu().numpy())
+            _accuracy.append(accuracy)
 
         print(f"Epoch {epoch}, Val Accu: {np.mean(_accuracy)}")
 

@@ -48,6 +48,10 @@ class CNN(nn.Module):
         self.activation = activation()
         self.feature_learner = torch.load(path_feature_learning,
                                           map_location="cpu")
+        self.feature_learner.eval()
+
+        for p in self.feature_learner.parameters():
+            p.requires_grad = False
 
         self.classifier = nn.Sequential(nn.LazyLinear(out_features=256),
                                         self.activation, nn.Dropout(0.4),
