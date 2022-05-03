@@ -39,20 +39,15 @@ def generate_pgd_adv(model,
         loss = criterion(output, y)
         loss.backward()
 
-        # compute the sign of the grad
-        grad = torch.sign(_adv.grad)
+        grad = torch.clip(_adv.grad, -eps, eps)
 
         # check if the attack is targetd or not
         if not targeted:
-            adv_image = adv_image + grad * alpha
+            adv_image = adv_image + grad
         else:
-            adv_image = adv_image - grad * alpha
+            adv_image = adv_image - grad
 
-        # perform projected gradient op for the training part
-        adv_image = torch.max(torch.min(adv_image, images + eps), images - eps)
-        adv_image = adv_image.clamp(0.0, 1.0)
-
-    # return ad
+        # return ad
     return adv_image.detach(), adv_image - images
 
 

@@ -39,7 +39,7 @@ pgd_un_adv_image, pgd_pertub = generate_pgd_adv(
     criterion=criterion,
     eps=1e-2,
     alpha=1e-4,
-    num_iter=50)
+    num_iter=5)
 
 # generate targeted samples for the fgsm approach
 pgd_targ_adv_image, pgd_pertub_targ = generate_pgd_adv(
@@ -48,8 +48,8 @@ pgd_targ_adv_image, pgd_pertub_targ = generate_pgd_adv(
     torch.LongTensor([9]),
     criterion=criterion,
     eps=1e-2,
-    alpha=1e-4,
-    num_iter=50,
+    alpha=1e-3,
+    num_iter=5,
     targeted=True)
 
 # predict the output for the images generated using pgd attack
@@ -69,15 +69,16 @@ print(
 )
 
 save_image(
-    normalize_image(pgd_un_adv_image, mean, std).numpy().transpose(1, 2, 0),
+    normalize_image(pgd_un_adv_image[0], mean, std).numpy().transpose(1, 2, 0),
     "PGD Untargetd Adv Image", "pgd_un_adv_img.png")
-save_image(pgd_pertub.detach().numpy().transpose(1, 2, 0),
+save_image(pgd_pertub[0].detach().numpy().transpose(1, 2, 0),
            "PGD Untargetd Pertubed Image", "pgd_un_per_img.png")
 
 save_image(
-    normalize_image(pgd_targ_adv_image, mean, std).numpy().transpose(1, 2, 0),
-    "PGD Targetd Adv Image", "pgd_targ_adv_img.png")
-save_image(pgd_pertub_targ.detach().numpy().transpose(1, 2, 0),
+    normalize_image(pgd_targ_adv_image[0], mean,
+                    std).numpy().transpose(1, 2, 0), "PGD Targetd Adv Image",
+    "pgd_targ_adv_img.png")
+save_image(pgd_pertub_targ[0].detach().numpy().transpose(1, 2, 0),
            "PGD Targetd Pertubed Image", "pgd_targ_per_img.png")
 
 # generate fgsm pertub
@@ -99,3 +100,24 @@ save_image(
     "FGSM Untargetd Adv Image", "fgsm_un_adv_img.png")
 save_image(fgsm_pertub_un[0].detach().numpy().transpose(1, 2, 0),
            "FGSM Untargetd Pertubed Image", "fgsm_un_per_img.png")
+
+# generate fgsm pertub
+fgsm_pertub_targ = generate_fgsm_pertub(model, image_tensor.unsqueeze(0),
+                                        torch.LongTensor([243]), criterion)
+# get adv image
+adv_fgsm_targ_image = image_tensor - 1e-2 * fgsm_pertub_targ
+fgsm_targ_probab = model(adv_fgsm_targ_image)
+
+# get the class probability and category id
+fgsm_targ_prob, fgsm_targ_cat_id = torch.topk(torch.sigmoid(fgsm_targ_probab),
+                                              1)
+# print the results and save images
+print(
+    f"FGSM: Probab Targ {fgsm_targ_prob}, Cat Id: {fgsm_targ_cat_id} Category: {categories[fgsm_targ_cat_id]}"
+)
+save_image(
+    normalize_image(adv_fgsm_targ_image[0], mean,
+                    std).numpy().transpose(1, 2, 0), "FGSM targetd Adv Image",
+    "fgsm_targ_adv_img.png")
+save_image(fgsm_pertub_targ[0].detach().numpy().transpose(1, 2, 0),
+           "FGSM targetd Pertubed Image", "fgsm_targ_per_img.png")
