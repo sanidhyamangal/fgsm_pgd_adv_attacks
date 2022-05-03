@@ -15,8 +15,8 @@ from transforms import generated_rotated_image
 from utils import DEVICE
 
 loss_history = []
-model = RotNetModel()
-BATCH_SIZE = 16
+model = RotNetModel().to(DEVICE())
+BATCH_SIZE = 64
 optimizer = Adam(model.parameters(), lr=1e-3)
 criterion = nn.CrossEntropyLoss()
 # define dataloader
@@ -37,12 +37,11 @@ test_dataloader = torch.utils.data.DataLoader(mnist_test,
                                               batch_size=BATCH_SIZE,
                                               shuffle=True,
                                               drop_last=True)
-
-for epoch in range(1):
-    for idx, batch in (train_dataloader):
+# perform training ops # for the rotnet
+for epoch in range(5):
+    for idx, batch in enumerate(train_dataloader):
         model.zero_grad()
-        batch_images, batch_angles = generated_rotated_image(
-            batch[0], batch_size=BATCH_SIZE)
+        batch_images, batch_angles = generated_rotated_image(batch[0])
         pred = model(batch_images.to(DEVICE()))
         loss = criterion(pred, batch_angles.to(DEVICE()))
         loss.backward()
@@ -52,13 +51,13 @@ for epoch in range(1):
         if idx % 100 == 0:
             print(f"Epoch {epoch}, Iteration: {idx},Loss: {loss_history[-1]}")
 
+    # evaluation step
     model.eval()
     with torch.no_grad():
         _accuracy = []
 
         for test_batch in test_dataloader:
-            batch_images, batch_angles = generated_rotated_image(
-                test_batch[0], batch_size=BATCH_SIZE)
+            batch_images, batch_angles = generated_rotated_image(test_batch[0])
             pred = model(batch_images.to(DEVICE()))
             labels = torch.argmax(torch.sigmoid(pred), dim=1)
 
@@ -66,14 +65,15 @@ for epoch in range(1):
                 DEVICE()).flatten()).sum().item()
             accuracy = correct / labels.shape[0]
 
-            _accuracy.append(accuracy.detach().cpu().numpy())
+            _accuracy.append(accuracy)
 
         print(f"Epoch {epoch}, Val Accu: {np.mean(_accuracy)}")
 
+# plot the loss for the training ops
 plt.plot(loss_history)
 plt.title("Rotation Pretraining Loss")
 plt.xlabel("Iterations")
 plt.ylabel("Loss")
-plt.savefig("rotnet_pre_trained_1.png")
+plt.savefig("rotnet_pre_trained.png")
 
 torch.save(model.feature_learner, "rotnet.pt")
